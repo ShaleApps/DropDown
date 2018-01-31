@@ -11,7 +11,11 @@ import UIKit
 open class DropDownCell: UITableViewCell {
 		
 	//UI
-	@IBOutlet open weak var optionLabel: UILabel!
+    @IBOutlet open weak var optionLabel: UILabel! {
+        didSet {
+            optionLabel.numberOfLines = 0
+        }
+    }
 	
 	var selectedBackgroundColor: UIColor?
 

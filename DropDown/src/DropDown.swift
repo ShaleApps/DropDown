@@ -177,7 +177,7 @@ public final class DropDown: UIView {
 
 	//MARK: Appearance
 	@objc public dynamic var cellHeight = DPDConstant.UI.RowHeight {
-		willSet { tableView.rowHeight = newValue }
+		willSet { tableView.estimatedRowHeight = newValue }
 		didSet { reloadAllComponents() }
 	}
 
@@ -411,7 +411,7 @@ public final class DropDown: UIView {
 	}
 
 	fileprivate var minHeight: CGFloat {
-		return tableView.rowHeight
+		return tableView.estimatedRowHeight
 	}
 
 	fileprivate var didSetupConstraints = false
@@ -482,7 +482,6 @@ private extension DropDown {
 			self.setupUI()
 		}
 
-		tableView.rowHeight = cellHeight
 		setHiddentState()
 		isHidden = true
 
@@ -729,7 +728,6 @@ extension DropDown {
 		
 		for index in 0..<dataSource.count {
 			configureCell(templateCell, at: index)
-			templateCell.bounds.size.height = cellHeight
 			let width = templateCell.systemLayoutSizeFitting(UILayoutFittingCompressedSize).width
 			
 			if width > maxWidth {
@@ -829,6 +827,8 @@ extension DropDown {
         if anchorPoint != nil {
             tableViewContainer.layer.anchorPoint = anchorPoint!
         }
+        
+        tableView.contentOffset = .zero
         
         if transform != nil {
             tableViewContainer.transform = transform!
@@ -973,7 +973,7 @@ extension DropDown {
 
 	/// Returns the height needed to display all cells.
 	fileprivate var tableHeight: CGFloat {
-		return tableView.rowHeight * CGFloat(dataSource.count)
+		return tableView.estimatedRowHeight * CGFloat(dataSource.count)
 	}
 
     //MARK: Objective-C methods for converting the Swift type Index
@@ -1010,6 +1010,14 @@ extension DropDown: UITableViewDataSource, UITableViewDelegate {
 
 		return cell
 	}
+    
+    public func tableView(_ tableView: UITableView, estimatedHeightForRowAt indexPath: IndexPath) -> CGFloat {
+        return 72
+    }
+    
+    public func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
+        return UITableViewAutomaticDimension
+    }
 	
 	fileprivate func configureCell(_ cell: DropDownCell, at index: Int) {
 		if index >= 0 && index < localizationKeysDataSource.count {
