@@ -23,8 +23,6 @@ extension DropDown {
 		appearance.shadowOpacity = DPDConstant.UI.Shadow.Opacity
 		appearance.shadowRadius = DPDConstant.UI.Shadow.Radius
 		appearance.animationduration = DPDConstant.Animation.Duration
-		appearance.textColor = DPDConstant.UI.TextColor
-		appearance.textFont = DPDConstant.UI.TextFont
 	}
 
 }
