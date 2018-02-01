@@ -308,24 +308,6 @@ public final class DropDown: UIView {
     }
     
     /**
-     The color of the text for each cells of the drop down.
-     
-     Changing the text color automatically reloads the drop down.
-     */
-    @objc public dynamic var textColor = DPDConstant.UI.TextColor {
-        didSet { reloadAllComponents() }
-    }
-    
-    /**
-     The font of the text for each cells of the drop down.
-     
-     Changing the text font automatically reloads the drop down.
-     */
-    @objc public dynamic var textFont = DPDConstant.UI.TextFont {
-        didSet { reloadAllComponents() }
-    }
-    
-    /**
      The NIB to use for DropDownCells
      
      Changing the cell nib automatically reloads the drop down.
