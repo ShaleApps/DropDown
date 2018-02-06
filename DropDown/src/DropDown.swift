@@ -75,6 +75,9 @@ public final class DropDown: UIView {
     
     //MARK: - Properties
     
+    var calculatedHeight: CGFloat = 0
+    var rowAdditionCount = 0
+    
     /// The current visible drop down. There can be only one visible drop down at a time.
     public static weak var VisibleDropDown: DropDown?
     
@@ -397,13 +400,6 @@ public final class DropDown: UIView {
         }
     }
     
-    fileprivate var minHeight: CGFloat {
-        if estimatedCellHeight == 0 {
-            return tableView.rowHeight
-        }
-        return tableView.estimatedRowHeight
-    }
-    
     fileprivate var didSetupConstraints = false
     
     //MARK: - Init's
@@ -520,19 +516,10 @@ extension DropDown {
         
         let layout = computeLayout()
         
-        if !layout.canBeDisplayed {
-            super.updateConstraints()
-            hide()
-            
-            return
-        }
-        
         xConstraint.constant = layout.x
         yConstraint.constant = layout.y
         widthConstraint.constant = layout.width
         heightConstraint.constant = layout.visibleHeight
-        
-        tableView.isScrollEnabled = layout.offscreenHeight > 0
         
         DispatchQueue.main.async { [weak self] in
             self?.tableView.flashScrollIndicators()
@@ -613,11 +600,11 @@ extension DropDown {
         tableViewContainer.layer.shadowPath = shadowPath.cgPath
     }
     
-    fileprivate func computeLayout() -> (x: CGFloat, y: CGFloat, width: CGFloat, offscreenHeight: CGFloat, visibleHeight: CGFloat, canBeDisplayed: Bool, Direction: Direction) {
+    fileprivate func computeLayout() -> (x: CGFloat, y: CGFloat, width: CGFloat, offscreenHeight: CGFloat, visibleHeight: CGFloat, Direction: Direction) {
         var layout: ComputeLayoutTuple = (0, 0, 0, 0)
         var direction = self.direction
         
-        guard let window = UIWindow.visibleWindow() else { return (0, 0, 0, 0, 0, false, direction) }
+        guard let window = UIWindow.visibleWindow() else { return (0, 0, 0, 0, 0, direction) }
         
         barButtonItemCondition: if let anchorView = anchorView as? UIBarButtonItem {
             let isRightBarButtonItem = anchorView.plainView.frame.minX > window.frame.midX
@@ -661,9 +648,8 @@ extension DropDown {
         constraintWidthToBoundsIfNecessary(layout: &layout, in: window)
         
         let visibleHeight = tableHeight - layout.offscreenHeight
-        let canBeDisplayed = visibleHeight >= minHeight
         
-        return (layout.x, layout.y, layout.width, layout.offscreenHeight, visibleHeight, canBeDisplayed, direction)
+        return (layout.x, layout.y, layout.width, layout.offscreenHeight, visibleHeight, direction)
     }
     
     fileprivate func computeLayoutBottomDisplay(window: UIWindow) -> ComputeLayoutTuple {
@@ -766,14 +752,13 @@ extension DropDown {
     /**
      An Objective-C alias for the show() method which converts the returned tuple into an NSDictionary.
      
-     - returns: An NSDictionary with a value for the "canBeDisplayed" Bool, and possibly for the "offScreenHeight" Optional(CGFloat).
+     - returns: An NSDictionary with a possible value for the "offScreenHeight" Optional(CGFloat).
      */
     @objc(show)
     public func objc_show() -> NSDictionary {
-        let (canBeDisplayed, offScreenHeight) = show()
+        let offScreenHeight = show()
         
         var info = [AnyHashable: Any]()
-        info["canBeDisplayed"] = canBeDisplayed
         if let offScreenHeight = offScreenHeight {
             info["offScreenHeight"] = offScreenHeight
         }
@@ -787,9 +772,9 @@ extension DropDown {
      - returns: Wether it succeed and how much height is needed to display all cells at once.
      */
     @discardableResult
-    public func show(beforeTransform transform: CGAffineTransform? = nil, anchorPoint: CGPoint? = nil) -> (canBeDisplayed: Bool, offscreenHeight: CGFloat?) {
+    public func show(beforeTransform transform: CGAffineTransform? = nil, anchorPoint: CGPoint? = nil) -> CGFloat? {
         if self == DropDown.VisibleDropDown && DropDown.VisibleDropDown?.isHidden == false { // added condition - DropDown.VisibleDropDown?.isHidden == false -> to resolve forever hiding dropdown issue when continuous taping on button - Kartik Patel - 2016-12-29
-            return (true, 0)
+            return 0
         }
         
         if let visibleDropDown = DropDown.VisibleDropDown {
@@ -810,11 +795,6 @@ extension DropDown {
         visibleWindow?.addUniversalConstraints(format: "|[dropDown]|", views: ["dropDown": self])
         
         let layout = computeLayout()
-        
-        if !layout.canBeDisplayed {
-            hide()
-            return (layout.canBeDisplayed, layout.offscreenHeight)
-        }
         
         isHidden = false
         
@@ -844,7 +824,7 @@ extension DropDown {
         //deselectRows(at: selectedRowIndices)
         selectRows(at: selectedRowIndices)
         
-        return (layout.canBeDisplayed, layout.offscreenHeight)
+        return layout.offscreenHeight
     }
     
     /// Hides the drop down.
@@ -905,6 +885,8 @@ extension DropDown {
      and `cellConfiguration` implicitly calls `reloadAllComponents()`.
      */
     public func reloadAllComponents() {
+        calculatedHeight = 0
+        rowAdditionCount = 0
         tableView.reloadData()
         setNeedsUpdateConstraints()
     }
@@ -967,10 +949,7 @@ extension DropDown {
     
     /// Returns the height needed to display all cells.
     fileprivate var tableHeight: CGFloat {
-        if estimatedCellHeight == 0 {
-            return tableView.rowHeight * CGFloat(dataSource.count)
-        }
-        return tableView.estimatedRowHeight * CGFloat(dataSource.count)
+        return calculatedHeight == 0 ? UIScreen.main.bounds.height : calculatedHeight
     }
     
     //MARK: Objective-C methods for converting the Swift type Index
@@ -1001,9 +980,7 @@ extension DropDown: UITableViewDataSource, UITableViewDelegate {
     
     public func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: DPDConstant.ReusableIdentifier.DropDownCell, for: indexPath) as! DropDownCell
-        let index = (indexPath as NSIndexPath).row
-        
-        configureCell(cell, at: index)
+        configureCell(cell, at: indexPath.row)
         
         return cell
     }
@@ -1034,6 +1011,12 @@ extension DropDown: UITableViewDataSource, UITableViewDelegate {
     
     public func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
         cell.isSelected = selectedRowIndices.first{ $0 == (indexPath as NSIndexPath).row } != nil
+        
+        if rowAdditionCount < dataSource.count && calculatedHeight <= tableView.frame.height {
+            rowAdditionCount += 1
+            calculatedHeight += cell.frame.height
+            updateConstraints()
+        }
     }
     
     public func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
