@@ -802,7 +802,7 @@ extension DropDown {
             tableViewContainer.layer.anchorPoint = anchorPoint!
         }
         
-        tableView.contentOffset = .zero
+        tableView.scrollToRow(at: IndexPath(row: 0, section: 0), at: .top, animated: false)
         
         if transform != nil {
             tableViewContainer.transform = transform!
