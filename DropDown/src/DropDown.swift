@@ -296,12 +296,12 @@ public final class DropDown: UIView {
     /**
      The option of the show animation. Only change the caller. To change all drop down's use the static var.
      */
-    public var animationEntranceOptions: UIViewAnimationOptions = DropDown.animationEntranceOptions
+    public var animationEntranceOptions: UIView.AnimationOptions = DropDown.animationEntranceOptions
     
     /**
      The option of the hide animation. Only change the caller. To change all drop down's use the static var.
      */
-    public var animationExitOptions: UIViewAnimationOptions = DropDown.animationExitOptions
+    public var animationExitOptions: UIView.AnimationOptions = DropDown.animationExitOptions
     
     /**
      The downScale transformation of the tableview when the DropDown is appearing
@@ -701,14 +701,14 @@ extension DropDown {
     
     fileprivate func fittingWidth() -> CGFloat {
         if templateCell == nil {
-            templateCell = cellNib.instantiate(withOwner: nil, options: nil)[0] as! DropDownCell
+			templateCell = cellNib.instantiate(withOwner: nil, options: nil)[0] as? DropDownCell
         }
         
         var maxWidth: CGFloat = 0
         
         for index in 0..<dataSource.count {
             configureCell(templateCell, at: index)
-            let width = templateCell.systemLayoutSizeFitting(UILayoutFittingCompressedSize).width
+            let width = templateCell.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize).width
             
             if width > maxWidth {
                 maxWidth = width
@@ -789,7 +789,7 @@ extension DropDown {
         
         let visibleWindow = UIWindow.visibleWindow()
         visibleWindow?.addSubview(self)
-        visibleWindow?.bringSubview(toFront: self)
+        visibleWindow?.bringSubviewToFront(self)
         
         self.translatesAutoresizingMaskIntoConstraints = false
         visibleWindow?.addUniversalConstraints(format: "|[dropDown]|", views: ["dropDown": self])
@@ -921,7 +921,7 @@ extension DropDown {
             else { return }
         
         // remove from indices
-        if let selectedRowIndex = selectedRowIndices.index(where: { $0 == index  }) {
+        if let selectedRowIndex = selectedRowIndices.firstIndex(where: { $0 == index  }) {
             selectedRowIndices.remove(at: selectedRowIndex)
         }
         
@@ -990,7 +990,7 @@ extension DropDown: UITableViewDataSource, UITableViewDelegate {
     }
     
     public func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
-        return estimatedCellHeight == 0 ? cellHeight : UITableViewAutomaticDimension
+        return estimatedCellHeight == 0 ? cellHeight : UITableView.automaticDimension
     }
     
     fileprivate func configureCell(_ cell: DropDownCell, at index: Int) {
@@ -1103,12 +1103,12 @@ extension DropDown {
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(keyboardUpdate),
-            name: NSNotification.Name.UIKeyboardWillShow,
+            name: UIResponder.keyboardWillShowNotification,
             object: nil)
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(keyboardUpdate),
-            name: NSNotification.Name.UIKeyboardWillHide,
+            name: UIResponder.keyboardWillHideNotification,
             object: nil)
     }
     
